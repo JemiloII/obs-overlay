@@ -1,0 +1,105 @@
+@use "../../styles/variables" as variables;
+@use "../../styles/mixins" as mixins;
+
+.chatMessage {
+  display: flex;
+  gap: variables.$spacingMedium;
+  align-items: flex-start;
+  padding: variables.$spacingMedium variables.$spacingLarge;
+  @include mixins.glassCard;
+  animation: messageEnter 0.35s ease-out;
+  font-size: variables.$fontSizeMessage;
+  line-height: 1.35;
+  color: variables.$messageTextColor;
+  text-shadow: variables.$messageTextShadow;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+// Bubble overrides applied when the message lives inside a MessageEffectWrapper.
+// Lower the glass-card opacity so the cosmic/rainbow/simmer background shines
+// through behind the text. Text shadow is bumped for legibility.
+.chatMessageInsideEffect {
+  background: rgba(15, 18, 28, 0.42);
+  border-color: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+.chatMessageExiting {
+  animation: messageExit 0.4s ease-in forwards;
+}
+
+.chatMessageBody {
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingExtraSmall;
+  min-width: 0;
+  flex: 1;
+}
+
+.chatMessageHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: variables.$spacingExtraSmall;
+}
+
+.username {
+  font-weight: variables.$fontWeightUsername;
+  font-size: variables.$fontSizeUsername;
+  margin-right: variables.$spacingExtraSmall;
+}
+
+.chatMessageFragments {
+  display: inline;
+  font-weight: variables.$fontWeightMessage;
+}
+
+.chatMessageGigantifiedContainer {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacingMedium;
+  flex-wrap: wrap;
+}
+
+.fragmentText {
+  white-space: pre-wrap;
+}
+
+.fragmentEmote {
+  height: variables.$emoteSize;
+  width: auto;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 0.1rem;
+}
+
+.fragmentCheermote {
+  color: variables.$themeBlue;
+  font-weight: 700;
+  padding: 0 0.2rem;
+}
+
+.fragmentMention {
+  color: variables.$themeBlue;
+  font-weight: 700;
+}
+
+.gigantifiedEmote {
+  height: variables.$emoteSizeGigantified;
+  width: auto;
+  animation: gigantifiedEmoteEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 0.4rem 0.6rem rgba(0, 0, 0, 0.45));
+}
+
+.replyLine {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-bottom: variables.$spacingExtraSmall;
+}
+
+.replyTarget {
+  color: variables.$themeBlue;
+  font-weight: 600;
+}

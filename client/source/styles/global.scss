@@ -1,0 +1,28 @@
+@use "./variables" as variables;
+@use "./animations";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#application-root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  // Transparent background so OBS browser source composites against game capture.
+  background: transparent;
+  color: variables.$messageTextColor;
+  font-family: variables.$fontFamilyBody;
+  font-size: 16px;
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+}

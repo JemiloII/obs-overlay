@@ -1,0 +1,198 @@
+@use "../../styles/variables" as variables;
+
+@property --gradientAngle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.messageEffectWrapper {
+  position: relative;
+  border-radius: variables.$messageBorderRadius;
+  overflow: hidden;
+  isolation: isolate;
+
+  // Each effect fills the wrapper entirely, sitting behind the inner bubble
+  // (which is now translucent — see ChatMessage.chatMessageInsideEffect).
+  // ::before = colored background. ::after = particle/highlight overlay.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+// --- Cosmic Abyss ---
+// Deep nebula: layered radial clouds in purple, magenta, and cyan with a
+// twinkling starfield on top. Clouds drift slowly; stars twinkle on a faster
+// loop. Designed to feel like an interstellar void.
+.messageEffectCosmicAbyss {
+  &::before {
+    background:
+      // Bright nebula cloud (magenta/pink) drifting upper-left.
+      radial-gradient(ellipse 60% 80% at 25% 30%, #c44dff 0%, rgba(196, 77, 255, 0.4) 25%, transparent 60%),
+      // Cyan accent cloud lower-right.
+      radial-gradient(ellipse 70% 60% at 78% 75%, #2af5ff 0%, rgba(42, 245, 255, 0.35) 30%, transparent 65%),
+      // Mid violet wash.
+      radial-gradient(ellipse 90% 80% at 50% 50%, #5b2a8f 0%, rgba(91, 42, 143, 0.5) 40%, transparent 80%),
+      // Deep space backdrop.
+      linear-gradient(135deg, #050018 0%, #1a0033 40%, #060019 100%);
+    background-size: 200% 200%, 200% 200%, 150% 150%, 100% 100%;
+    animation: cosmicDrift 14s ease-in-out infinite alternate;
+    filter: saturate(1.3) contrast(1.05);
+  }
+
+  &::after {
+    mix-blend-mode: screen;
+    background-image:
+      // Big bright stars.
+      radial-gradient(1.8px 1.8px at 8% 22%, #ffffff 0%, transparent 100%),
+      radial-gradient(2px 2px at 32% 68%, #d6ecff 0%, transparent 100%),
+      radial-gradient(2.4px 2.4px at 58% 18%, #ffffff 0%, transparent 100%),
+      radial-gradient(1.6px 1.6px at 72% 52%, #ffe9c2 0%, transparent 100%),
+      radial-gradient(2.2px 2.2px at 88% 78%, #ffffff 0%, transparent 100%),
+      // Small stars.
+      radial-gradient(1px 1px at 16% 80%, #ffffff 0%, transparent 100%),
+      radial-gradient(1px 1px at 42% 36%, #c8e0ff 0%, transparent 100%),
+      radial-gradient(1px 1px at 66% 88%, #ffffff 0%, transparent 100%),
+      radial-gradient(1px 1px at 92% 12%, #ffffff 0%, transparent 100%),
+      radial-gradient(1px 1px at 4% 56%, #e0d4ff 0%, transparent 100%),
+      // Soft outer glow vignette.
+      radial-gradient(ellipse 100% 100% at 50% 50%, transparent 60%, rgba(40, 0, 80, 0.4) 100%);
+    animation: cosmicTwinkle 2.4s ease-in-out infinite;
+  }
+}
+
+// --- Rainbow Eclipse ---
+// Full hue spectrum slowly drifting horizontally, soft inner darkening.
+.messageEffectRainbowEclipse {
+  &::before {
+    background: linear-gradient(
+      120deg,
+      #ff004c 0%,
+      #ff8a00 16%,
+      #f6e000 33%,
+      #00d76b 50%,
+      #00b3ff 66%,
+      #6800ff 83%,
+      #ff004c 100%
+    );
+    background-size: 300% 100%;
+    animation: rainbowShift 6s linear infinite;
+    filter: saturate(1.1);
+  }
+
+  &::after {
+    background: radial-gradient(
+      ellipse at center,
+      transparent 30%,
+      rgba(0, 0, 0, 0.25) 100%
+    );
+  }
+}
+
+// --- Simmer ---
+// Warm orange/red heat with a rising shimmer and flickering glow.
+.messageEffectSimmer {
+  &::before {
+    background:
+      radial-gradient(ellipse at 50% 110%, #ffd166 0%, #ff8a00 25%, #ff3d00 50%, #800000 80%, transparent 100%),
+      linear-gradient(180deg, #2a0500 0%, #4a0a00 100%);
+    animation: simmerRise 2.4s ease-in-out infinite;
+  }
+
+  &::after {
+    background:
+      radial-gradient(ellipse at 30% 100%, rgba(255, 200, 100, 0.4), transparent 50%),
+      radial-gradient(ellipse at 70% 100%, rgba(255, 100, 50, 0.4), transparent 50%);
+    animation: simmerFlicker 0.9s ease-in-out infinite;
+  }
+}
+
+// --- Generic fallback (used for unknown effect ids).
+.messageEffectGeneric {
+  &::before {
+    background: linear-gradient(
+      120deg,
+      variables.$themeBlueDeep 0%,
+      variables.$twitchPurple 50%,
+      variables.$themeBlue 100%
+    );
+    background-size: 200% 100%;
+    animation: rainbowShift 5s linear infinite;
+  }
+}
+
+@keyframes cosmicDrift {
+  0% {
+    background-position:
+      0% 0%,
+      100% 100%,
+      0% 0%,
+      0% 0%;
+  }
+  100% {
+    background-position:
+      100% 50%,
+      0% 0%,
+      50% 100%,
+      0% 0%;
+  }
+}
+
+@keyframes cosmicTwinkle {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes rainbowShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+@keyframes simmerRise {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(-4%) scale(1.04);
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes simmerFlicker {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}

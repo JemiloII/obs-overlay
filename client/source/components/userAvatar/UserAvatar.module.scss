@@ -1,0 +1,12 @@
+@use "../../styles/variables" as variables;
+
+.userAvatar {
+  width: variables.$avatarSize;
+  height: variables.$avatarSize;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  // No fill — let transparent regions of the profile image stay transparent
+  // so they composite against game capture in OBS.
+  background: transparent;
+}

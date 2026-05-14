@@ -1,0 +1,32 @@
+// Theme
+$themeBlue: #3B6ABE;
+$themeBlueDeep: #2A4F94;
+$themeBlueGlow: rgba(59, 106, 190, 0.55);
+$twitchPurple: #9146FF;
+
+// Typography
+$fontFamilyBody: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+$fontSizeMessage: 1.35rem;
+$fontSizeUsername: 1.35rem;
+$fontWeightUsername: 700;
+$fontWeightMessage: 500;
+
+// Spacing
+$spacingExtraSmall: 0.25rem;
+$spacingSmall: 0.5rem;
+$spacingMedium: 0.75rem;
+$spacingLarge: 1rem;
+
+// Sizing
+$avatarSize: 4.25rem;
+$badgeSize: 1.25rem;
+$platformIndicatorSize: 1.1rem;
+$emoteSize: 2rem;
+$emoteSizeGigantified: 7rem;
+
+// Effects
+$messageBackgroundColor: rgba(15, 18, 28, 0.78);
+$messageBorderRadius: 0.85rem;
+$messageShadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.45);
+$messageTextColor: #f1f4fb;
+$messageTextShadow: 0 1px 2px rgba(0, 0, 0, 0.8);

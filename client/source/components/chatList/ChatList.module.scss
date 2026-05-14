@@ -1,0 +1,29 @@
+@use "../../styles/variables" as variables;
+@use "../../styles/mixins" as mixins;
+
+.chatListViewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: variables.$spacingLarge;
+  pointer-events: none;
+  @include mixins.fadeMaskTop(8%);
+}
+
+.chatList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingMedium;
+  width: 100%;
+  max-width: 32rem;
+}
+
+.chatListItem {
+  display: block;
+  pointer-events: auto;
+}

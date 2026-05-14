@@ -1,0 +1,10 @@
+@use "../../styles/variables" as variables;
+
+.userBadge {
+  width: variables.$badgeSize;
+  height: variables.$badgeSize;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  image-rendering: -webkit-optimize-contrast;
+}

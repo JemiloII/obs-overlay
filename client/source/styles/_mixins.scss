@@ -1,0 +1,48 @@
+@use "./variables" as variables;
+
+@mixin fadeMaskTop($fadeHeightPercentage: 12%) {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.5) $fadeHeightPercentage,
+    black calc(#{$fadeHeightPercentage} * 2)
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.5) $fadeHeightPercentage,
+    black calc(#{$fadeHeightPercentage} * 2)
+  );
+}
+
+@mixin glassCard {
+  background: variables.$messageBackgroundColor;
+  border-radius: variables.$messageBorderRadius;
+  box-shadow: variables.$messageShadow;
+  backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@mixin messageEffectBorder {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    border-radius: calc(#{variables.$messageBorderRadius} + 2px);
+    background: conic-gradient(
+      from 0deg,
+      variables.$themeBlue,
+      variables.$twitchPurple,
+      variables.$themeBlue,
+      variables.$twitchPurple,
+      variables.$themeBlue
+    );
+    animation: messageEffectRotate 6s linear infinite;
+    filter: blur(2px);
+    opacity: 0.85;
+  }
+}
