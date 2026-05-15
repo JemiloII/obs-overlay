@@ -86,6 +86,87 @@ export type OverlayChatMessage = {
   receivedAt: number;
 };
 
+// ============================================================================
+// Alerts protocol
+// ============================================================================
+
+export type OverlayAlertKind =
+  | "subscription"
+  | "subscriptionGift"
+  | "follow"
+  | "cheer"
+  | "raid"
+  | "channelPointsRedemption";
+
+export type OverlaySubscriptionTier = "tier1" | "tier2" | "tier3" | "prime";
+
+export type OverlaySubscriptionAlert = {
+  alertId: string;
+  kind: "subscription";
+  userDisplayName: string;
+  tier: OverlaySubscriptionTier;
+  isResubscription: boolean;
+  cumulativeMonths: number | null;
+  message: string | null;
+  receivedAt: number;
+};
+
+export type OverlaySubscriptionGiftAlert = {
+  alertId: string;
+  kind: "subscriptionGift";
+  gifterDisplayName: string | null;
+  isAnonymous: boolean;
+  tier: OverlaySubscriptionTier;
+  giftCount: number;
+  cumulativeTotal: number | null;
+  receivedAt: number;
+};
+
+export type OverlayFollowAlert = {
+  alertId: string;
+  kind: "follow";
+  userDisplayName: string;
+  receivedAt: number;
+};
+
+export type OverlayCheerAlert = {
+  alertId: string;
+  kind: "cheer";
+  userDisplayName: string | null;
+  isAnonymous: boolean;
+  bits: number;
+  message: string;
+  receivedAt: number;
+};
+
+export type OverlayRaidAlert = {
+  alertId: string;
+  kind: "raid";
+  fromBroadcasterDisplayName: string;
+  viewerCount: number;
+  receivedAt: number;
+};
+
+export type OverlayChannelPointsRedemptionAlert = {
+  alertId: string;
+  kind: "channelPointsRedemption";
+  userDisplayName: string;
+  rewardId: string;
+  rewardTitle: string;
+  rewardCost: number;
+  userInput: string;
+  receivedAt: number;
+};
+
+export type OverlayAlertEvent =
+  | OverlaySubscriptionAlert
+  | OverlaySubscriptionGiftAlert
+  | OverlayFollowAlert
+  | OverlayCheerAlert
+  | OverlayRaidAlert
+  | OverlayChannelPointsRedemptionAlert;
+
 export type ServerToClientMessage =
   | { kind: "chatMessage"; data: OverlayChatMessage }
+  | { kind: "alertEvent"; data: OverlayAlertEvent }
   | { kind: "connectionReady" };

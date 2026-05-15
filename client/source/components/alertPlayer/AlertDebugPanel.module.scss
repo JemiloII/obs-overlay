@@ -1,0 +1,80 @@
+@use "../../styles/variables" as variables;
+
+.debugPanel {
+  position: fixed;
+  top: variables.$spacingMedium;
+  right: variables.$spacingMedium;
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingSmall;
+  padding: variables.$spacingSmall variables.$spacingMedium;
+  background: rgba(15, 18, 28, 0.92);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
+  color: variables.$messageTextColor;
+  font-family: variables.$fontFamilyBody;
+  font-size: 0.8rem;
+  z-index: 1000;
+  pointer-events: auto;
+  max-width: 28rem;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacingSmall;
+}
+
+.statusIndicator {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status_connecting {
+  background: #f5a623;
+  box-shadow: 0 0 0.5rem #f5a623;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.status_connected {
+  background: #2ecc71;
+  box-shadow: 0 0 0.5rem #2ecc71;
+}
+
+.status_disconnected {
+  background: #e74c3c;
+  box-shadow: 0 0 0.5rem #e74c3c;
+}
+
+.statusLabel {
+  font-variant-numeric: tabular-nums;
+}
+
+.buttonRow {
+  display: flex;
+  gap: variables.$spacingExtraSmall;
+  flex-wrap: wrap;
+}
+
+.buttonRow button {
+  background: variables.$themeBlue;
+  color: white;
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    background: variables.$themeBlueDeep;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -180,6 +180,108 @@ export type TwitchChannelBitsUseEvent = {
   } | null;
 };
 
+// ============================================================================
+// Alert-related EventSub events
+// ============================================================================
+
+export type TwitchSubscriptionTier = "1000" | "2000" | "3000" | "Prime";
+
+export type TwitchChannelSubscribeEvent = {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  tier: TwitchSubscriptionTier;
+  is_gift: boolean;
+};
+
+export type TwitchChannelSubscriptionMessageEvent = {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  tier: TwitchSubscriptionTier;
+  message: {
+    text: string;
+    emotes: Array<{
+      begin: number;
+      end: number;
+      id: string;
+    }> | null;
+  };
+  cumulative_months: number;
+  streak_months: number | null;
+  duration_months: number;
+};
+
+export type TwitchChannelSubscriptionGiftEvent = {
+  user_id: string | null;
+  user_login: string | null;
+  user_name: string | null;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  total: number;
+  tier: TwitchSubscriptionTier;
+  cumulative_total: number | null;
+  is_anonymous: boolean;
+};
+
+export type TwitchChannelFollowEvent = {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  followed_at: string;
+};
+
+export type TwitchChannelCheerEvent = {
+  is_anonymous: boolean;
+  user_id: string | null;
+  user_login: string | null;
+  user_name: string | null;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  message: string;
+  bits: number;
+};
+
+export type TwitchChannelRaidEvent = {
+  from_broadcaster_user_id: string;
+  from_broadcaster_user_login: string;
+  from_broadcaster_user_name: string;
+  to_broadcaster_user_id: string;
+  to_broadcaster_user_login: string;
+  to_broadcaster_user_name: string;
+  viewers: number;
+};
+
+export type TwitchChannelPointsRedemptionEvent = {
+  id: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  user_input: string;
+  status: "unfulfilled" | "fulfilled" | "canceled" | "unknown";
+  reward: {
+    id: string;
+    title: string;
+    cost: number;
+    prompt: string;
+  };
+  redeemed_at: string;
+};
+
 export type TwitchEventSubSubscriptionDescriptor = {
   id: string;
   status: string;
@@ -201,7 +303,14 @@ export type TwitchEventSubNotificationPayload<TEvent> = {
 
 export type TwitchEvent =
   | TwitchChannelChatMessageEvent
-  | TwitchChannelBitsUseEvent;
+  | TwitchChannelBitsUseEvent
+  | TwitchChannelSubscribeEvent
+  | TwitchChannelSubscriptionMessageEvent
+  | TwitchChannelSubscriptionGiftEvent
+  | TwitchChannelFollowEvent
+  | TwitchChannelCheerEvent
+  | TwitchChannelRaidEvent
+  | TwitchChannelPointsRedemptionEvent;
 
 export type TwitchEventSubEnvelope =
   | {

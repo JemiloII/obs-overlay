@@ -13,3 +13,9 @@ coverage
 *.png
 *.jpg
 *.jpeg
+
+# Alert pack binaries (copied locally; not redistributed)
+client/public/alerts/**/*.webm
+client/public/alerts/**/*.mp3
+client/public/alerts/**/*.wav
+client/public/alerts/**/*.ogg

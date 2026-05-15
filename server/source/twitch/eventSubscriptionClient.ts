@@ -3,6 +3,13 @@ import WebSocket from "ws";
 import type {
   TwitchChannelBitsUseEvent,
   TwitchChannelChatMessageEvent,
+  TwitchChannelCheerEvent,
+  TwitchChannelFollowEvent,
+  TwitchChannelPointsRedemptionEvent,
+  TwitchChannelRaidEvent,
+  TwitchChannelSubscribeEvent,
+  TwitchChannelSubscriptionGiftEvent,
+  TwitchChannelSubscriptionMessageEvent,
   TwitchEvent,
   TwitchEventSubEnvelope,
   TwitchEventSubNotificationPayload,
@@ -12,10 +19,26 @@ import type {
 import type { HelixClient } from "./helixClient.js";
 
 const twitchEventSubWebSocketUrl = "wss://eventsub.wss.twitch.tv/ws";
+
 const channelChatMessageSubscriptionType = "channel.chat.message";
 const channelChatMessageSubscriptionVersion = "1";
 const channelBitsUseSubscriptionType = "channel.bits.use";
 const channelBitsUseSubscriptionVersion = "1";
+const channelSubscribeSubscriptionType = "channel.subscribe";
+const channelSubscribeSubscriptionVersion = "1";
+const channelSubscriptionMessageSubscriptionType = "channel.subscription.message";
+const channelSubscriptionMessageSubscriptionVersion = "1";
+const channelSubscriptionGiftSubscriptionType = "channel.subscription.gift";
+const channelSubscriptionGiftSubscriptionVersion = "1";
+const channelFollowSubscriptionType = "channel.follow";
+const channelFollowSubscriptionVersion = "2";
+const channelCheerSubscriptionType = "channel.cheer";
+const channelCheerSubscriptionVersion = "1";
+const channelRaidSubscriptionType = "channel.raid";
+const channelRaidSubscriptionVersion = "1";
+const channelPointsRedemptionSubscriptionType =
+  "channel.channel_points_custom_reward_redemption.add";
+const channelPointsRedemptionSubscriptionVersion = "1";
 
 export type TwitchEventSubscriptionClientOptions = {
   broadcasterUserId: string;
@@ -26,6 +49,13 @@ export type TwitchEventSubscriptionClientOptions = {
 type TwitchEventSubscriptionEvents = {
   chatMessage: [TwitchChannelChatMessageEvent];
   bitsUse: [TwitchChannelBitsUseEvent];
+  subscribe: [TwitchChannelSubscribeEvent];
+  subscriptionMessage: [TwitchChannelSubscriptionMessageEvent];
+  subscriptionGift: [TwitchChannelSubscriptionGiftEvent];
+  follow: [TwitchChannelFollowEvent];
+  cheer: [TwitchChannelCheerEvent];
+  raid: [TwitchChannelRaidEvent];
+  channelPointsRedemption: [TwitchChannelPointsRedemptionEvent];
   connected: [];
   disconnected: [{ code: number; reason: string }];
   fatalError: [Error];
@@ -136,16 +166,61 @@ export class TwitchEventSubscriptionClient extends EventEmitter<TwitchEventSubsc
       const notificationPayload =
         envelope.payload as TwitchEventSubNotificationPayload<TwitchEvent>;
       const subscriptionType = envelope.metadata.subscription_type;
-      if (subscriptionType === channelChatMessageSubscriptionType) {
-        this.emit(
-          "chatMessage",
-          notificationPayload.event as TwitchChannelChatMessageEvent,
-        );
-      } else if (subscriptionType === channelBitsUseSubscriptionType) {
-        this.emit(
-          "bitsUse",
-          notificationPayload.event as TwitchChannelBitsUseEvent,
-        );
+      switch (subscriptionType) {
+        case channelChatMessageSubscriptionType:
+          this.emit(
+            "chatMessage",
+            notificationPayload.event as TwitchChannelChatMessageEvent,
+          );
+          break;
+        case channelBitsUseSubscriptionType:
+          this.emit(
+            "bitsUse",
+            notificationPayload.event as TwitchChannelBitsUseEvent,
+          );
+          break;
+        case channelSubscribeSubscriptionType:
+          this.emit(
+            "subscribe",
+            notificationPayload.event as TwitchChannelSubscribeEvent,
+          );
+          break;
+        case channelSubscriptionMessageSubscriptionType:
+          this.emit(
+            "subscriptionMessage",
+            notificationPayload.event as TwitchChannelSubscriptionMessageEvent,
+          );
+          break;
+        case channelSubscriptionGiftSubscriptionType:
+          this.emit(
+            "subscriptionGift",
+            notificationPayload.event as TwitchChannelSubscriptionGiftEvent,
+          );
+          break;
+        case channelFollowSubscriptionType:
+          this.emit(
+            "follow",
+            notificationPayload.event as TwitchChannelFollowEvent,
+          );
+          break;
+        case channelCheerSubscriptionType:
+          this.emit(
+            "cheer",
+            notificationPayload.event as TwitchChannelCheerEvent,
+          );
+          break;
+        case channelRaidSubscriptionType:
+          this.emit(
+            "raid",
+            notificationPayload.event as TwitchChannelRaidEvent,
+          );
+          break;
+        case channelPointsRedemptionSubscriptionType:
+          this.emit(
+            "channelPointsRedemption",
+            notificationPayload.event as TwitchChannelPointsRedemptionEvent,
+          );
+          break;
       }
       return;
     }
@@ -183,34 +258,108 @@ export class TwitchEventSubscriptionClient extends EventEmitter<TwitchEventSubsc
     if (this.hasSubscribedForCurrentSession) {
       return;
     }
-    try {
-      await this.options.helixClient.createEventSubscription({
+    const websocketTransport = {
+      method: "websocket" as const,
+      session_id: sessionId,
+    };
+    const broadcasterOnlyCondition = {
+      broadcaster_user_id: this.options.broadcasterUserId,
+    };
+    const subscriptionsToCreate: Array<{
+      label: string;
+      type: string;
+      version: string;
+      condition: Record<string, string>;
+    }> = [
+      {
+        label: "channel.chat.message",
         type: channelChatMessageSubscriptionType,
         version: channelChatMessageSubscriptionVersion,
         condition: {
           broadcaster_user_id: this.options.broadcasterUserId,
           user_id: this.options.authenticatedUserId,
         },
-        transport: {
-          method: "websocket",
-          session_id: sessionId,
-        },
-      });
-      console.log("[eventsub] channel.chat.message subscription confirmed");
-
-      await this.options.helixClient.createEventSubscription({
+      },
+      {
+        label: "channel.bits.use",
         type: channelBitsUseSubscriptionType,
         version: channelBitsUseSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.subscribe",
+        type: channelSubscribeSubscriptionType,
+        version: channelSubscribeSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.subscription.message",
+        type: channelSubscriptionMessageSubscriptionType,
+        version: channelSubscriptionMessageSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.subscription.gift",
+        type: channelSubscriptionGiftSubscriptionType,
+        version: channelSubscriptionGiftSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.follow",
+        type: channelFollowSubscriptionType,
+        version: channelFollowSubscriptionVersion,
         condition: {
           broadcaster_user_id: this.options.broadcasterUserId,
+          moderator_user_id: this.options.authenticatedUserId,
         },
-        transport: {
-          method: "websocket",
-          session_id: sessionId,
+      },
+      {
+        label: "channel.cheer",
+        type: channelCheerSubscriptionType,
+        version: channelCheerSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.raid",
+        type: channelRaidSubscriptionType,
+        version: channelRaidSubscriptionVersion,
+        condition: {
+          to_broadcaster_user_id: this.options.broadcasterUserId,
         },
-      });
-      console.log("[eventsub] channel.bits.use subscription confirmed");
+      },
+      {
+        label: "channel.channel_points_custom_reward_redemption.add",
+        type: channelPointsRedemptionSubscriptionType,
+        version: channelPointsRedemptionSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+    ];
 
+    try {
+      for (const subscription of subscriptionsToCreate) {
+        try {
+          await this.options.helixClient.createEventSubscription({
+            type: subscription.type,
+            version: subscription.version,
+            condition: subscription.condition,
+            transport: websocketTransport,
+          });
+          console.log(
+            `[eventsub] ${subscription.label} subscription confirmed`,
+          );
+        } catch (subscriptionError) {
+          const message =
+            subscriptionError instanceof Error
+              ? subscriptionError.message
+              : String(subscriptionError);
+          console.warn(
+            `[eventsub] ${subscription.label} subscription failed: ${message}`,
+          );
+          // Continue with remaining subscriptions; one failing scope
+          // (e.g. missing channel_points scope on a brand-new channel)
+          // shouldn't take the whole overlay down.
+        }
+      }
       this.hasSubscribedForCurrentSession = true;
       this.emit("connected");
     } catch (error) {

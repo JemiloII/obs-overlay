@@ -9,6 +9,15 @@ import { UserProfileCache } from "./caches/userProfileCache.js";
 import { BadgeCache } from "./caches/badgeCache.js";
 import { MessageTransformer } from "./twitch/messageTransformer.js";
 import { TwitchEventSubscriptionClient } from "./twitch/eventSubscriptionClient.js";
+import {
+  transformCheerEvent,
+  transformChannelPointsRedemptionEvent,
+  transformFollowEvent,
+  transformRaidEvent,
+  transformSubscribeEvent,
+  transformSubscriptionGiftEvent,
+  transformSubscriptionMessageEvent,
+} from "./twitch/alertTransformer.js";
 import { createApplication } from "./http/application.js";
 import { WebSocketBroadcaster } from "./http/webSocketBroadcaster.js";
 
@@ -63,6 +72,60 @@ async function main(): Promise<void> {
     // Retained for Phase 2 (channel-points / bits-gated customizations).
     // Quiet for now; flip to console.log if you need to inspect raw payloads.
     void event;
+  });
+
+  eventSubscriptionClient.on("subscribe", (event) => {
+    // Skip gifted recipients here — channel.subscription.gift carries the
+    // gift event we actually want to play an alert for.
+    if (event.is_gift) {
+      return;
+    }
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformSubscribeEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("subscriptionMessage", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformSubscriptionMessageEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("subscriptionGift", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformSubscriptionGiftEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("follow", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformFollowEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("cheer", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformCheerEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("raid", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformRaidEvent(event),
+    });
+  });
+
+  eventSubscriptionClient.on("channelPointsRedemption", (event) => {
+    webSocketBroadcaster.broadcast({
+      kind: "alertEvent",
+      data: transformChannelPointsRedemptionEvent(event),
+    });
   });
 
   eventSubscriptionClient.on("fatalError", (error) => {

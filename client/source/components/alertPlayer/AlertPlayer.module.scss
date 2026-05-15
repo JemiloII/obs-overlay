@@ -1,0 +1,126 @@
+@use "../../styles/variables" as variables;
+
+.alertContainer {
+  position: fixed;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: alertEnter 0.4s ease-out;
+}
+
+.alertVideo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  background: transparent;
+}
+
+.alertText {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: variables.$spacingSmall;
+  color: variables.$messageTextColor;
+  font-family: variables.$fontFamilyBody;
+  text-align: center;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.alertHeadline {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.alertSubline {
+  font-size: 1.4rem;
+  font-weight: 500;
+  opacity: 0.95;
+  max-width: 32rem;
+}
+
+// --- Positioning variants ---
+
+.positionFullscreen {
+  inset: 0;
+
+  .alertText {
+    bottom: 18%;
+    left: 0;
+    right: 0;
+  }
+}
+
+.positionCornerLeft {
+  left: 0;
+  top: 0;
+  width: 28rem;
+  height: 16rem;
+
+  .alertText {
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+  }
+
+  .alertHeadline {
+    font-size: 1.6rem;
+  }
+
+  .alertSubline {
+    font-size: 1rem;
+  }
+}
+
+.positionCornerRight {
+  right: 0;
+  top: 0;
+  width: 28rem;
+  height: 16rem;
+
+  .alertText {
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+  }
+
+  .alertHeadline {
+    font-size: 1.6rem;
+  }
+
+  .alertSubline {
+    font-size: 1rem;
+  }
+}
+
+.positionScreenSides {
+  inset: 0;
+
+  .alertText {
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    right: 0;
+  }
+}
+
+@keyframes alertEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
