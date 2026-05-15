@@ -1,18 +1,22 @@
 import { useConnectionStore } from "../../stores/connectionStore.js";
-import { useChatStore } from "../../stores/chatStore.js";
 import { buildSampleChatMessage } from "../../utilities/sampleChatMessages.js";
+import { broadcastDebugMessage } from "../../utilities/broadcastDebugMessage.js";
+import type { OverlayChatMessage } from "@twitch-overlay/types";
 import styles from "./DebugPanel.module.scss";
+
+function broadcastChat(message: OverlayChatMessage): void {
+  void broadcastDebugMessage({ kind: "chatMessage", data: message });
+}
 
 export function DebugPanel() {
   const connectionStatus = useConnectionStore((state) => state.status);
-  const appendMessage = useChatStore((state) => state.appendMessage);
 
   function injectSampleTextMessage(): void {
-    appendMessage(buildSampleChatMessage());
+    broadcastChat(buildSampleChatMessage());
   }
 
   function injectSampleGigantifiedEmote(): void {
-    appendMessage(
+    broadcastChat(
       buildSampleChatMessage({
         messageType: "powerUpsGigantifiedEmote",
         fragments: [
@@ -31,7 +35,7 @@ export function DebugPanel() {
   }
 
   function injectSampleMessageEffect(messageEffectId: string): void {
-    appendMessage(
+    broadcastChat(
       buildSampleChatMessage({
         messageType: "powerUpsMessageEffect",
         messageEffectId,
