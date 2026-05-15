@@ -14,8 +14,8 @@ Designed with a public-widget Phase 2 in mind — viewers will eventually be abl
 ## Setup
 
 ```bash
-git clone https://github.com/JemiloII/twitch-overlay.git
-cd twitch-overlay
+git clone https://github.com/JemiloII/obs-overlay.git
+cd obs-overlay
 pnpm install
 cp .env.example .env
 # Fill in the .env values (see below)
