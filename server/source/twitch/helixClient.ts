@@ -80,32 +80,72 @@ export class HelixClient {
   async createEventSubscription(
     subscription: EventSubscriptionRequest,
   ): Promise<EventSubscriptionResponse> {
-    const response = await fetch(`${helixBaseUrl}/eventsub/subscriptions`, {
+    return this.requestJson<EventSubscriptionResponse>({
+      pathWithQuery: "/eventsub/subscriptions",
       method: "POST",
-      headers: this.buildAuthorizationHeaders({ contentTypeJson: true }),
       body: JSON.stringify(subscription),
+      contentTypeJson: true,
+      errorContext: "create EventSub subscription",
     });
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(
-        `Failed to create EventSub subscription (${response.status}): ${errorBody}`,
-      );
-    }
-    return (await response.json()) as EventSubscriptionResponse;
   }
 
   private async requestList<TItem>(pathWithQuery: string): Promise<TItem[]> {
-    const response = await fetch(`${helixBaseUrl}${pathWithQuery}`, {
-      headers: this.buildAuthorizationHeaders({ contentTypeJson: false }),
+    const envelope = await this.requestJson<HelixListEnvelope<TItem>>({
+      pathWithQuery,
+      method: "GET",
+      contentTypeJson: false,
+      errorContext: `GET ${pathWithQuery}`,
     });
+    return envelope.data;
+  }
+
+  /**
+   * Wraps every Helix call so a 401 transparently refreshes the access token
+   * and retries the request once. The proactive refresh scheduler in
+   * TwitchAuthenticationManager should keep us ahead of expiry, but this is
+   * the safety net for any race (skewed clocks, sleep/wake, etc.).
+   */
+  private async requestJson<TResponse>(options: {
+    pathWithQuery: string;
+    method: "GET" | "POST";
+    body?: string;
+    contentTypeJson: boolean;
+    errorContext: string;
+  }): Promise<TResponse> {
+    const performRequest = async (): Promise<Response> =>
+      fetch(`${helixBaseUrl}${options.pathWithQuery}`, {
+        method: options.method,
+        headers: this.buildAuthorizationHeaders({
+          contentTypeJson: options.contentTypeJson,
+        }),
+        body: options.body,
+      });
+
+    let response = await performRequest();
+    if (response.status === 401) {
+      console.warn(
+        `[helix] 401 on ${options.errorContext}, refreshing token and retrying once`,
+      );
+      try {
+        await this.authentication.refreshAccessToken();
+      } catch (refreshError) {
+        const message =
+          refreshError instanceof Error
+            ? refreshError.message
+            : String(refreshError);
+        throw new Error(
+          `Helix ${options.errorContext} failed (401) and refresh failed: ${message}`,
+        );
+      }
+      response = await performRequest();
+    }
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(
-        `Helix GET ${pathWithQuery} failed (${response.status}): ${errorBody}`,
+        `Helix ${options.errorContext} failed (${response.status}): ${errorBody}`,
       );
     }
-    const envelope = (await response.json()) as HelixListEnvelope<TItem>;
-    return envelope.data;
+    return (await response.json()) as TResponse;
   }
 
   private buildAuthorizationHeaders(options: { contentTypeJson: boolean }): Record<string, string> {

@@ -34,8 +34,12 @@ async function main(): Promise<void> {
   const tokenInformation = await authentication.validateOrRefresh();
   ensureRequiredScopes(tokenInformation.scopes, ["user:read:chat"]);
   console.log(
-    `[boot] authenticated as ${tokenInformation.loginName} (user_id=${tokenInformation.userId})`,
+    `[boot] authenticated as ${tokenInformation.loginName} (user_id=${tokenInformation.userId}), token valid for ~${Math.round(tokenInformation.expiresInSeconds / 60)} minutes`,
   );
+  // Keep the access token fresh forever: refresh ~10 minutes before each
+  // expiry. Without this, long-running sessions silently break after the
+  // initial ~4-hour token lifetime.
+  authentication.startProactiveRefresh(tokenInformation.expiresInSeconds);
 
   const helixClient = new HelixClient(authentication);
   const userProfileCache = new UserProfileCache(helixClient);
@@ -147,6 +151,7 @@ async function main(): Promise<void> {
 
   function gracefulShutdown(): void {
     console.log("[shutdown] stopping...");
+    authentication.stopProactiveRefresh();
     eventSubscriptionClient.stop();
     httpServer.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 2_000).unref();
