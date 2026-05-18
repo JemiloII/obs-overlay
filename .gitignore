@@ -14,8 +14,19 @@ coverage
 *.jpg
 *.jpeg
 
-# Alert pack binaries (copied locally; not redistributed)
-client/public/alerts/**/*.webm
-client/public/alerts/**/*.mp3
-client/public/alerts/**/*.wav
-client/public/alerts/**/*.ogg
+# Third-party asset packs. End users drop their purchased pack (with the
+# creator's original folder structure intact) into external-assets/ and the
+# project picks it up from there. The folder itself is tracked via .gitkeep
+# so the path always exists after cloning, but every other entry is ignored.
+external-assets/*
+!external-assets/.gitkeep
+
+# Legacy safety nets and catch-alls in case asset binaries land anywhere
+# else in the working tree.
+client/public/external-assets/
+client/public/alerts/
+packs/
+*.webm
+*.mp3
+*.wav
+*.ogg

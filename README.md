@@ -87,35 +87,45 @@ For both:
 
 ## Third-party assets
 
-The alert pack used by the alerts overlay (WebM animations + MP3 sounds in `client/public/alerts/<pack-name>/`) is **not included** in this repository. Those files are licensed separately and must be obtained directly from the creator.
+The alerts overlay plays WebM animations + MP3 sounds from a creator-purchased alert pack. **The pack files are not included in this repository and are never committed.** They live inside the top-level `external-assets/` folder, which is committed (via a `.gitkeep`) so the directory always exists after cloning, but every entry inside it is gitignored.
 
-The setup in this repo expects files at:
+### Set up your pack
 
-```
-client/public/alerts/glowing-starfall-rainbow/
-├── videos/
-│   ├── fullscreen-tier-1.webm
-│   ├── fullscreen-tier-2.webm
-│   ├── fullscreen-tier-3.webm
-│   ├── corner-left.webm
-│   ├── corner-right.webm
-│   └── screen-sides.webm
-└── sounds/
-    ├── alert-1.mp3
-    ├── alert-2.mp3
-    ├── alert-3.mp3
-    ├── glowy-1.mp3
-    ├── glowy-2.mp3
-    ├── glowy-3.mp3
-    └── glowy-4.mp3
-```
+1. **Purchase** a pack license (this repo's defaults match DexPixel's **Glowing Starfall Alerts**, but any pack works if you map filenames):
+   <https://vgen.co/DexPixel/product/glowing-starfall-alerts-full-screen-animated-twitch-alerts-for-obs-streamlabs/210eff42-a624-45c0-865b-a441f7914839>
 
-These were sourced from DexPixel's **Glowing Starfall Alerts** pack on vgen:
-<https://vgen.co/DexPixel/product/glowing-starfall-alerts-full-screen-animated-twitch-alerts-for-obs-streamlabs/210eff42-a624-45c0-865b-a441f7914839>
+2. **Unzip** the pack and drop the unzipped folder into `external-assets/` at the project root. Keep the creator's original folder names + filenames untouched. With the Glowing Starfall pack you end up with:
+   ```
+   external-assets/
+   ├── .gitkeep
+   └── Glowing Starfall - Rainbow/
+       ├── Animated Alerts/
+       │   ├── Alert Fullscreen Tier 1 Glowy Starfall Rainbow.webm
+       │   ├── Alert Fullscreen Tier 2 Glowy Starfall Rainbow.webm
+       │   ├── Alert Fullscreen Tier 3 Glowy Starfall Rainbow.webm
+       │   ├── Alert Corner Left Glowy Starfall Rainbow.webm
+       │   ├── Alert Corner Right Glowy Starfall Rainbow.webm
+       │   └── Alert Screen Sides Glowy Starfall Rainbow.webm
+       └── Sound/
+           ├── Alert Sound 1.mp3 … Alert Sound 3.mp3
+           └── Alert Sound Glowy 1.mp3 … Alert Sound Glowy 4.mp3
+   ```
 
-If you want to use this overlay with that pack, **you need to purchase your own license from DexPixel.** The pack's license (vgen Personal + Monetized Content; no commercial merchandising) covers stream use; it does not permit redistribution. Files are listed in `.gitignore` to ensure they never end up in this repo.
+3. **That's it.** No env var, no config file. A small Vite middleware in `client/vite.config.ts` serves the contents of the top-level `external-assets/` folder at `http://localhost:<CLIENT_PORT>/external-assets/<sub-path>`, with a path-traversal guard so requests can only resolve to files inside that directory.
 
-If you have a different alert pack, rename your files to match the filenames above and drop them into the same folder structure, or update `client/source/utilities/alertAssetManifest.ts` to point at your filenames.
+### Using a different pack
+
+Edit `client/source/utilities/alertAssetManifest.ts` and change the `packBaseUrl` constant + the `videoUrl(...)` / `soundUrl(...)` filenames to match your pack's folder name + filenames. The folder structure under `external-assets/` mirrors however your pack ships — the code doesn't care about the layout, just the paths it looks for.
+
+### Licensing
+
+The DexPixel pack ships under vgen's **Personal + Monetized Content** license — no commercial merchandising, no redistribution. To keep this repository clean of pack bytes, `.gitignore` blocks:
+
+- `external-assets/*` (with `!external-assets/.gitkeep` so the folder itself stays tracked)
+- `client/public/external-assets/`, `client/public/alerts/`, `packs/` (legacy paths, kept as belt-and-suspenders)
+- `*.webm`, `*.mp3`, `*.wav`, `*.ogg` anywhere in the tree
+
+Any contributor who accidentally drops a binary into the working copy will see it ignored automatically.
 
 ## Features
 
@@ -157,6 +167,10 @@ pnpm type-check   # tsc --noEmit across all packages
 ## Roadmap
 
 **Phase 2** (separate planning session): public viewer-customization site where chatters log in with Twitch and personalize how their own messages appear, gated by channel points or bits. Will use SQLite for storage.
+
+## Credits
+
+- **[@DexPixel](https://vgen.co/DexPixel)** — *Glowing Starfall Alerts* pack used by the alerts overlay. Purchase your own license to use the pack with this project — see [Third-party assets](#third-party-assets).
 
 ## License
 
