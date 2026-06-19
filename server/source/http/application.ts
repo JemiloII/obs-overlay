@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { ServerToClientMessage } from "@twitch-overlay/types";
+import type { StatsStore } from "../stats/statsStore.js";
 import type { WebSocketBroadcaster } from "./webSocketBroadcaster.js";
 
 export type ApplicationDependencies = {
   webSocketBroadcaster: WebSocketBroadcaster;
+  statsStore: StatsStore;
 };
 
 function isKnownServerToClientMessage(
@@ -15,7 +17,10 @@ function isKnownServerToClientMessage(
   }
   const kind = (candidate as { kind?: unknown }).kind;
   return (
-    kind === "chatMessage" || kind === "alertEvent" || kind === "connectionReady"
+    kind === "chatMessage" ||
+    kind === "alertEvent" ||
+    kind === "statsSnapshot" ||
+    kind === "connectionReady"
   );
 }
 
@@ -86,6 +91,15 @@ export function createApplication(dependencies: ApplicationDependencies) {
       onOpen(_event, ws) {
         dependencies.webSocketBroadcaster.registerClient(ws);
         ws.send(JSON.stringify({ kind: "connectionReady" }));
+        // Send the current stats snapshot so newly-connected clients
+        // (a fresh OBS browser source, a reconnect) have full state
+        // without waiting for the next event.
+        ws.send(
+          JSON.stringify({
+            kind: "statsSnapshot",
+            data: dependencies.statsStore.buildSnapshot(),
+          }),
+        );
       },
       onClose(_event, ws) {
         dependencies.webSocketBroadcaster.unregisterClient(ws);

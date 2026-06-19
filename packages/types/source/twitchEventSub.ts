@@ -263,6 +263,27 @@ export type TwitchChannelRaidEvent = {
   viewers: number;
 };
 
+export type TwitchChannelGoalType =
+  | "follower"
+  | "subscription"
+  | "subscription_count"
+  | "new_subscription"
+  | "new_subscription_count";
+
+export type TwitchChannelGoalEvent = {
+  id: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  type: TwitchChannelGoalType;
+  description: string;
+  is_achieved?: boolean;
+  current_amount: number;
+  target_amount: number;
+  started_at: string;
+  ended_at?: string | null;
+};
+
 export type TwitchChannelPointsRedemptionEvent = {
   id: string;
   broadcaster_user_id: string;
@@ -310,7 +331,8 @@ export type TwitchEvent =
   | TwitchChannelFollowEvent
   | TwitchChannelCheerEvent
   | TwitchChannelRaidEvent
-  | TwitchChannelPointsRedemptionEvent;
+  | TwitchChannelPointsRedemptionEvent
+  | TwitchChannelGoalEvent;
 
 export type TwitchEventSubEnvelope =
   | {

@@ -60,7 +60,12 @@ Recommended for the alerts overlay:
 - `channel:read:hype_train` — hype train events
 - `user:write:chat` — send chat messages from the overlay/bot
 
-The server is forgiving: if a sub-scope is missing, it logs a warning and skips that one subscription rather than refusing to start.
+Recommended for the stats overlay (`/stats`):
+
+- `channel:read:goals` — creator goals (follower / sub goals); seeded at boot from Helix `/goals` and kept live via `channel.goal.*` EventSub. **Without this, the Goals section is always empty.**
+- `moderator:read:followers` — also powers the "latest follower" backfill so the board isn't empty between live follows.
+
+The server is forgiving: if a sub-scope is missing, it logs a warning and skips that one subscription rather than refusing to start. Note that "latest subscriber / cheer / gift" have no time-ordered Helix history endpoint, so they can't be backfilled — those slots fill in only as events arrive while the server is running.
 
 ## OBS Browser Sources
 

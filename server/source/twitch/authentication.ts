@@ -1,5 +1,3 @@
-import { persistRefreshedTokens } from "../configuration.js";
-
 const twitchOauthValidateUrl = "https://id.twitch.tv/oauth2/validate";
 const twitchOauthTokenUrl = "https://id.twitch.tv/oauth2/token";
 
@@ -178,12 +176,12 @@ export class TwitchAuthenticationManager {
       );
     }
     const parsed = (await response.json()) as RefreshResponseBody;
+    // Keep refreshed tokens in memory only. Writing them back to .env trips
+    // the dev file-watcher (Vite/tsx) and restarts the server mid-session,
+    // dropping overlay connections. The refresh token is stable, so on any
+    // restart the boot-time validateOrRefresh re-derives a fresh access token.
     this.currentAccessToken = parsed.access_token;
     this.currentRefreshToken = parsed.refresh_token;
-    persistRefreshedTokens({
-      accessToken: parsed.access_token,
-      refreshToken: parsed.refresh_token,
-    });
   }
 
   private async attemptValidate(): Promise<ValidatedTokenInformation | null> {

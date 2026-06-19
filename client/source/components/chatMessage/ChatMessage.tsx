@@ -54,17 +54,10 @@ export function ChatMessage({ message, fadeAfterSeconds }: ChatMessageProperties
     message.messageType === "powerUpsGigantifiedEmote"
       ? findFirstEmoteFragment(message)
       : null;
-  const hasMessageEffect = message.messageType === "powerUpsMessageEffect";
 
   const body = (
     <div
-      className={[
-        styles.chatMessage,
-        hasMessageEffect ? styles.chatMessageInsideEffect : "",
-        isExiting ? styles.chatMessageExiting : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={`${styles.chatMessage} ${isExiting ? styles.chatMessageExiting : ""}`}
     >
       <UserAvatar
         profileImageUrl={message.chatter.profileImageUrl}
@@ -80,13 +73,16 @@ export function ChatMessage({ message, fadeAfterSeconds }: ChatMessageProperties
           </div>
         ) : null}
         <div className={styles.chatMessageHeader}>
-          <span className={styles.username} style={{ color: usernameColor }}>
-            {message.chatter.displayName}
-          </span>
           <PlatformIndicator platform={message.platform} />
           {message.badges.map((badge) => (
             <UserBadge key={`${badge.setId}:${badge.badgeId}`} badge={badge} />
           ))}
+          <span className={styles.username} style={{ color: usernameColor }}>
+            {message.chatter.displayName}
+          </span>
+          <span className={styles.usernameColon} style={{ color: usernameColor }}>
+            :
+          </span>
         </div>
         {gigantifiedEmote ? (
           <div className={styles.chatMessageGigantifiedContainer}>
@@ -112,11 +108,7 @@ export function ChatMessage({ message, fadeAfterSeconds }: ChatMessageProperties
   );
 
   if (message.messageType === "powerUpsMessageEffect") {
-    return (
-      <MessageEffectWrapper messageEffectId={message.messageEffectId}>
-        {body}
-      </MessageEffectWrapper>
-    );
+    return <MessageEffectWrapper>{body}</MessageEffectWrapper>;
   }
   return body;
 }

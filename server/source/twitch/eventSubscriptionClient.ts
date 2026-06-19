@@ -5,6 +5,7 @@ import type {
   TwitchChannelChatMessageEvent,
   TwitchChannelCheerEvent,
   TwitchChannelFollowEvent,
+  TwitchChannelGoalEvent,
   TwitchChannelPointsRedemptionEvent,
   TwitchChannelRaidEvent,
   TwitchChannelSubscribeEvent,
@@ -39,6 +40,12 @@ const channelRaidSubscriptionVersion = "1";
 const channelPointsRedemptionSubscriptionType =
   "channel.channel_points_custom_reward_redemption.add";
 const channelPointsRedemptionSubscriptionVersion = "1";
+const channelGoalBeginSubscriptionType = "channel.goal.begin";
+const channelGoalBeginSubscriptionVersion = "1";
+const channelGoalProgressSubscriptionType = "channel.goal.progress";
+const channelGoalProgressSubscriptionVersion = "1";
+const channelGoalEndSubscriptionType = "channel.goal.end";
+const channelGoalEndSubscriptionVersion = "1";
 
 export type TwitchEventSubscriptionClientOptions = {
   broadcasterUserId: string;
@@ -56,6 +63,9 @@ type TwitchEventSubscriptionEvents = {
   cheer: [TwitchChannelCheerEvent];
   raid: [TwitchChannelRaidEvent];
   channelPointsRedemption: [TwitchChannelPointsRedemptionEvent];
+  goalBegin: [TwitchChannelGoalEvent];
+  goalProgress: [TwitchChannelGoalEvent];
+  goalEnd: [TwitchChannelGoalEvent];
   connected: [];
   disconnected: [{ code: number; reason: string }];
   fatalError: [Error];
@@ -221,6 +231,24 @@ export class TwitchEventSubscriptionClient extends EventEmitter<TwitchEventSubsc
             notificationPayload.event as TwitchChannelPointsRedemptionEvent,
           );
           break;
+        case channelGoalBeginSubscriptionType:
+          this.emit(
+            "goalBegin",
+            notificationPayload.event as TwitchChannelGoalEvent,
+          );
+          break;
+        case channelGoalProgressSubscriptionType:
+          this.emit(
+            "goalProgress",
+            notificationPayload.event as TwitchChannelGoalEvent,
+          );
+          break;
+        case channelGoalEndSubscriptionType:
+          this.emit(
+            "goalEnd",
+            notificationPayload.event as TwitchChannelGoalEvent,
+          );
+          break;
       }
       return;
     }
@@ -331,6 +359,24 @@ export class TwitchEventSubscriptionClient extends EventEmitter<TwitchEventSubsc
         label: "channel.channel_points_custom_reward_redemption.add",
         type: channelPointsRedemptionSubscriptionType,
         version: channelPointsRedemptionSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.goal.begin",
+        type: channelGoalBeginSubscriptionType,
+        version: channelGoalBeginSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.goal.progress",
+        type: channelGoalProgressSubscriptionType,
+        version: channelGoalProgressSubscriptionVersion,
+        condition: broadcasterOnlyCondition,
+      },
+      {
+        label: "channel.goal.end",
+        type: channelGoalEndSubscriptionType,
+        version: channelGoalEndSubscriptionVersion,
         condition: broadcasterOnlyCondition,
       },
     ];

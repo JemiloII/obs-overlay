@@ -1,12 +1,34 @@
+import type {
+  TwitchChannelGoalType,
+} from "@twitch-overlay/types";
 import type { TwitchAuthenticationManager } from "./authentication.js";
 
 const helixBaseUrl = "https://api.twitch.tv/helix";
+
+export type HelixCreatorGoal = {
+  id: string;
+  broadcaster_id: string;
+  broadcaster_name: string;
+  broadcaster_login: string;
+  type: TwitchChannelGoalType;
+  description: string;
+  current_amount: number;
+  target_amount: number;
+  created_at: string;
+};
 
 export type HelixUser = {
   id: string;
   login: string;
   display_name: string;
   profile_image_url: string;
+};
+
+export type HelixChannelFollower = {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  followed_at: string;
 };
 
 export type HelixBadgeVersion = {
@@ -77,6 +99,34 @@ export class HelixClient {
     );
   }
 
+  async getCreatorGoals(broadcasterUserId: string): Promise<HelixCreatorGoal[]> {
+    const searchParameters = new URLSearchParams({
+      broadcaster_id: broadcasterUserId,
+    });
+    return this.requestList<HelixCreatorGoal>(
+      `/goals?${searchParameters.toString()}`,
+    );
+  }
+
+  /**
+   * Most recent follower, or null if the channel has none. Helix returns
+   * /channels/followers in descending order by followed_at, so first=1 is the
+   * latest. Requires the moderator:read:followers scope; callers should treat
+   * a thrown error as "scope missing, skip the backfill" rather than fatal.
+   */
+  async getLatestFollower(
+    broadcasterUserId: string,
+  ): Promise<HelixChannelFollower | null> {
+    const searchParameters = new URLSearchParams({
+      broadcaster_id: broadcasterUserId,
+      first: "1",
+    });
+    const followers = await this.requestList<HelixChannelFollower>(
+      `/channels/followers?${searchParameters.toString()}`,
+    );
+    return followers[0] ?? null;
+  }
+
   async createEventSubscription(
     subscription: EventSubscriptionRequest,
   ): Promise<EventSubscriptionResponse> {
@@ -86,6 +136,24 @@ export class HelixClient {
       body: JSON.stringify(subscription),
       contentTypeJson: true,
       errorContext: "create EventSub subscription",
+    });
+  }
+
+  async sendChatMessage(
+    broadcasterUserId: string, // user id of channel
+    sendUserId: string, // bot user id
+    message: string,
+  ): Promise<EventSubscriptionResponse> {
+    return this.requestJson<HelixListEnvelope<any>>({
+      pathWithQuery: "/chat/messages",
+      method: "POST",
+      body: JSON.stringify({
+        broadcaster_id: broadcasterUserId,
+        sender_id: sendUserId,
+        message,
+      }),
+      contentTypeJson: true,
+      errorContext: "send chat message",
     });
   }
 

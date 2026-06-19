@@ -166,7 +166,36 @@ export type OverlayAlertEvent =
   | OverlayRaidAlert
   | OverlayChannelPointsRedemptionAlert;
 
+// ============================================================================
+// Stats overlay protocol
+// ============================================================================
+
+export type OverlayGoalKind =
+  | "follower"
+  | "subscription"
+  | "subscriptionCount"
+  | "newSubscription"
+  | "newSubscriptionCount";
+
+export type OverlayGoal = {
+  goalId: string;
+  kind: OverlayGoalKind;
+  description: string;
+  currentAmount: number;
+  targetAmount: number;
+};
+
+export type OverlayStatsSnapshot = {
+  goals: OverlayGoal[];
+  latestSubscription: OverlaySubscriptionAlert | null;
+  latestFollow: OverlayFollowAlert | null;
+  latestCheer: OverlayCheerAlert | null;
+  latestGift: OverlaySubscriptionGiftAlert | null;
+  generatedAt: number;
+};
+
 export type ServerToClientMessage =
   | { kind: "chatMessage"; data: OverlayChatMessage }
   | { kind: "alertEvent"; data: OverlayAlertEvent }
+  | { kind: "statsSnapshot"; data: OverlayStatsSnapshot }
   | { kind: "connectionReady" };

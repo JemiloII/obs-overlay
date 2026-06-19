@@ -16,16 +16,6 @@
   max-width: 100%;
 }
 
-// Bubble overrides applied when the message lives inside a MessageEffectWrapper.
-// Lower the glass-card opacity so the cosmic/rainbow/simmer background shines
-// through behind the text. Text shadow is bumped for legibility.
-.chatMessageInsideEffect {
-  background: rgba(15, 18, 28, 0.42);
-  border-color: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(6px);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.6);
-}
-
 .chatMessageExiting {
   animation: messageExit 0.4s ease-in forwards;
 }
@@ -48,6 +38,11 @@
 .username {
   font-weight: variables.$fontWeightUsername;
   font-size: variables.$fontSizeUsername;
+  margin-left: variables.$spacingExtraSmall;
+}
+
+.usernameColon {
+  font-weight: variables.$fontWeightUsername;
   margin-right: variables.$spacingExtraSmall;
 }
 
@@ -102,4 +97,10 @@
 .replyTarget {
   color: variables.$themeBlue;
   font-weight: 600;
+}
+
+.messageEffectWrapper {
+  @include mixins.messageEffectBorder;
+  animation: messageEffectPulse 2.5s ease-in-out infinite;
+  border-radius: variables.$messageBorderRadius;
 }

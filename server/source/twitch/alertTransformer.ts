@@ -92,6 +92,27 @@ export function transformFollowEvent(
   };
 }
 
+/**
+ * Builds a follow alert from a Helix follower record (used to backfill the
+ * stats overlay's "latest follower" slot at boot). Unlike the EventSub path,
+ * Helix gives us the real followed_at timestamp, so the "X ago" label is
+ * accurate across server restarts.
+ */
+export function buildFollowAlertFromHelixFollower(follower: {
+  user_name: string;
+  followed_at: string;
+}): OverlayFollowAlert {
+  const followedAtMilliseconds = Date.parse(follower.followed_at);
+  return {
+    alertId: newAlertId(),
+    kind: "follow",
+    userDisplayName: follower.user_name,
+    receivedAt: Number.isFinite(followedAtMilliseconds)
+      ? followedAtMilliseconds
+      : Date.now(),
+  };
+}
+
 export function transformCheerEvent(
   event: TwitchChannelCheerEvent,
 ): OverlayCheerAlert {
