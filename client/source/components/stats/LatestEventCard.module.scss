@@ -1,0 +1,54 @@
+@use "../../styles/variables" as variables;
+@use "../../styles/mixins" as mixins;
+
+.latestEventCard {
+  @include mixins.glassCard;
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingExtraSmall;
+  padding: variables.$spacingSmall variables.$spacingMedium;
+  color: variables.$messageTextColor;
+  font-family: variables.$fontFamilyBody;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacingSmall;
+  margin-bottom: variables.$spacingExtraSmall;
+}
+
+.platformGlyph {
+  width: variables.$platformIndicatorSize;
+  height: variables.$platformIndicatorSize;
+  color: variables.$twitchPurple;
+  flex-shrink: 0;
+}
+
+.cardLabel {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: variables.$themeBlue;
+}
+
+.primaryText {
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.secondaryText {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  line-height: 1.3;
+}
+
+.relativeTime {
+  font-size: 0.85rem;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+  margin-top: variables.$spacingExtraSmall;
+}

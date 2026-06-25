@@ -1,12 +1,9 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "source",
-    "noEmit": false,
-    "types": ["node"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
   },
   "include": ["source/**/*.ts"]
 }

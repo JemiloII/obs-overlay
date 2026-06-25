@@ -1,245 +1,180 @@
 import { serve } from "@hono/node-server";
-import { loadConfiguration } from "./configuration.js";
-import {
-  TwitchAuthenticationManager,
-  ensureRequiredScopes,
-} from "./twitch/authentication.js";
-import { HelixClient } from "./twitch/helixClient.js";
-import { UserProfileCache } from "./caches/userProfileCache.js";
-import { BadgeCache } from "./caches/badgeCache.js";
-import { MessageTransformer } from "./twitch/messageTransformer.js";
-import { TwitchEventSubscriptionClient } from "./twitch/eventSubscriptionClient.js";
-import {
-  buildFollowAlertFromHelixFollower,
-  transformCheerEvent,
-  transformFollowEvent,
-  transformRaidEvent,
-  transformSubscribeEvent,
-  transformSubscriptionGiftEvent,
-  transformSubscriptionMessageEvent,
-} from "./twitch/alertTransformer.js";
-import {
-  transformGoalEvent,
-  transformHelixGoal,
-} from "./twitch/goalsTransformer.js";
-import { StatsStore } from "./stats/statsStore.js";
-import { createApplication } from "./http/application.js";
-import { WebSocketBroadcaster } from "./http/webSocketBroadcaster.js";
+import { RefreshingAuthProvider } from "@twurple/auth";
+import { ApiClient } from "@twurple/api";
+import { EventSubWsListener } from "@twurple/eventsub-ws";
+import { loadConfiguration, type ApplicationConfiguration } from "./configuration.ts";
+import { ChatMessageBuilder } from "./twitch/chatMessages.ts";
+import * as alerts from "./twitch/alerts.ts";
+import { StatsStore } from "./stats/statsStore.ts";
+import { createApplication } from "./http/application.ts";
+import { WebSocketBroadcaster } from "./http/webSocketBroadcaster.ts";
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+// Fire-and-forget POST to voisona-bot's /speak pipe. No-op unless configured.
+function speak(config: ApplicationConfiguration, text: string): void {
+  if (!config.voisonaSpeakUrl || !config.voisonaApiKey) {
+    return;
+  }
+  fetch(config.voisonaSpeakUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": config.voisonaApiKey },
+    body: JSON.stringify({ text }),
+  }).catch((error) => console.error("[speak] pipe failed:", errorMessage(error)));
+}
 
 async function main(): Promise<void> {
-  const configuration = loadConfiguration();
-  const authentication = new TwitchAuthenticationManager({
-    clientId: configuration.twitchClientId,
-    clientSecret: configuration.twitchClientSecret,
-    accessToken: configuration.twitchAccessToken,
-    refreshToken: configuration.twitchRefreshToken,
+  const config = loadConfiguration();
+
+  const authProvider = new RefreshingAuthProvider({
+    clientId: config.twitchClientId,
+    clientSecret: config.twitchClientSecret,
   });
-
-  console.log("[boot] validating Twitch access token...");
-  const tokenInformation = await authentication.validateOrRefresh();
-  const botUserId = tokenInformation.userId;
-  const broadcasterUserId = '23256990';
-  ensureRequiredScopes(tokenInformation.scopes, ["user:read:chat"]);
-  console.log(
-    `[boot] authenticated as ${tokenInformation.loginName} (user_id=${botUserId}), token valid for ~${Math.round(tokenInformation.expiresInSeconds / 60)} minutes`,
+  // expiresIn: 0 forces a refresh on first use, so a stale access token in .env
+  // still boots. Tokens stay in memory only — writing them back to .env restarts
+  // the dev watcher, and the refresh token is stable across restarts.
+  const userId = await authProvider.addUserForToken(
+    {
+      accessToken: config.twitchAccessToken,
+      refreshToken: config.twitchRefreshToken,
+      expiresIn: 0,
+      obtainmentTimestamp: 0,
+    },
+    ["chat"],
   );
-  // Keep the access token fresh forever: refresh ~10 minutes before each
-  // expiry. Without this, long-running sessions silently break after the
-  // initial ~4-hour token lifetime.
-  authentication.startProactiveRefresh(tokenInformation.expiresInSeconds);
+  console.log(`[boot] authenticated (user_id=${userId})`);
 
-  const helixClient = new HelixClient(authentication);
-  const userProfileCache = new UserProfileCache(helixClient);
-  const badgeCache = new BadgeCache(helixClient);
+  const api = new ApiClient({ authProvider });
 
+  const chatBuilder = new ChatMessageBuilder(api);
   console.log("[boot] caching global + channel badges...");
-  await badgeCache.initialize(botUserId);
+  await chatBuilder.loadBadges(userId);
 
-
-  const messageTransformer = new MessageTransformer(userProfileCache, badgeCache);
-  const statsStore = new StatsStore();
-  const webSocketBroadcaster = new WebSocketBroadcaster();
+  const stats = new StatsStore();
+  const broadcaster = new WebSocketBroadcaster();
   const { application, injectWebSocket } = createApplication({
-    webSocketBroadcaster,
-    statsStore,
+    webSocketBroadcaster: broadcaster,
+    statsStore: stats,
   });
 
-  // Seed creator goals from Helix. The channel:read:goals scope is optional —
-  // missing scope just leaves the goals slot empty until/unless the scope
-  // is added and the user restarts.
+  const pushStats = (): void =>
+    broadcaster.broadcast({ kind: "statsSnapshot", data: stats.buildSnapshot() });
+
+  // Seed goals + latest follower from Helix so the stats overlay isn't empty on
+  // restart. Both rely on optional scopes — a thrown error just skips the slot.
   try {
-    const initialGoals = await helixClient.getCreatorGoals(botUserId);
-    for (const goal of initialGoals) {
-      statsStore.upsertGoal(transformHelixGoal(goal));
+    for (const helixGoal of await api.goals.getGoals(userId)) {
+      stats.upsertGoal(alerts.goal(helixGoal));
     }
-    console.log(`[boot] seeded ${initialGoals.length} creator goal(s) from Helix`);
-  } catch (goalSeedError) {
-    const message =
-      goalSeedError instanceof Error
-        ? goalSeedError.message
-        : String(goalSeedError);
-    console.warn(
-      `[boot] could not seed creator goals (channel:read:goals scope missing?): ${message}`,
-    );
+  } catch (error) {
+    console.warn(`[boot] could not seed goals (channel:read:goals?): ${errorMessage(error)}`);
   }
-
-  // Backfill the "latest follower" slot from Helix so the stats overlay isn't
-  // empty between live follows (the in-memory store is wiped on restart).
-  // Requires moderator:read:followers — missing scope just skips this.
-  // Note: "latest subscriber/cheer/gift" have no time-ordered Helix history
-  // endpoint, so those stay live-only and fill in as events arrive.
   try {
-    const latestFollower = await helixClient.getLatestFollower(
-      botUserId,
-    );
-    if (latestFollower) {
-      statsStore.setLatestFollow(
-        buildFollowAlertFromHelixFollower(latestFollower),
-      );
-      console.log(
-        `[boot] seeded latest follower (${latestFollower.user_name}) from Helix`,
-      );
-    } else {
-      console.log("[boot] no followers to seed");
+    const { data } = await api.channels.getChannelFollowers(userId, undefined, { limit: 1 });
+    if (data[0]) {
+      stats.setLatestFollow(alerts.followerAlert(data[0]));
+      console.log(`[boot] seeded latest follower (${data[0].userDisplayName})`);
     }
-  } catch (followerSeedError) {
-    const message =
-      followerSeedError instanceof Error
-        ? followerSeedError.message
-        : String(followerSeedError);
+  } catch (error) {
     console.warn(
-      `[boot] could not seed latest follower (moderator:read:followers scope missing?): ${message}`,
+      `[boot] could not seed latest follower (moderator:read:followers?): ${errorMessage(error)}`,
     );
   }
 
-  function broadcastStatsSnapshot(): void {
-    webSocketBroadcaster.broadcast({
-      kind: "statsSnapshot",
-      data: statsStore.buildSnapshot(),
-    });
-  }
+  const listener = new EventSubWsListener({ apiClient: api });
 
-  const eventSubscriptionClient = new TwitchEventSubscriptionClient({
-    broadcasterUserId: botUserId,
-    authenticatedUserId: botUserId,
-    helixClient,
-  });
-
-  eventSubscriptionClient.on("chatMessage", async (event) => {
+  listener.onChannelChatMessage(userId, userId, async (event) => {
     try {
-      // { say, args, isMod, api, broadcaster, botUserId, user }
-      const overlayMessage = await messageTransformer.transform(event);
-      console.log('event:', event);
-      webSocketBroadcaster.broadcast({
-        kind: "chatMessage",
-        data: overlayMessage,
-      });
-    } catch (transformError) {
-      console.error("[chat] failed to transform/broadcast message:", transformError);
+      broadcaster.broadcast({ kind: "chatMessage", data: await chatBuilder.build(event) });
+    } catch (error) {
+      console.error("[chat] failed to transform/broadcast:", error);
     }
   });
 
-  eventSubscriptionClient.on("bitsUse", (event) => {
-    // Retained for Phase 2 (channel-points / bits-gated customizations).
-    // Quiet for now; flip to console.log if you need to inspect raw payloads.
-    void event;
-  });
-
-  eventSubscriptionClient.on("subscribe", (event) => {
-    // Skip gifted recipients here — channel.subscription.gift carries the
-    // gift event we actually want to play an alert for.
-    if (event.is_gift) {
-      return;
+  listener.onChannelSubscription(userId, (event) => {
+    if (event.isGift) {
+      return; // gifted recipients arrive via onChannelSubscriptionGift
     }
-    const alert = transformSubscribeEvent(event);
-    webSocketBroadcaster.broadcast({ kind: "alertEvent", data: alert });
-    statsStore.setLatestSubscription(alert);
-    broadcastStatsSnapshot();
+    const alert = alerts.subscriptionAlert(event);
+    broadcaster.broadcast({ kind: "alertEvent", data: alert });
+    stats.setLatestSubscription(alert);
+    pushStats();
   });
 
-  eventSubscriptionClient.on("subscriptionMessage", (event) => {
-    const alert = transformSubscriptionMessageEvent(event);
-    webSocketBroadcaster.broadcast({ kind: "alertEvent", data: alert });
-    statsStore.setLatestSubscription(alert);
-    broadcastStatsSnapshot();
+  listener.onChannelSubscriptionMessage(userId, (event) => {
+    const alert = alerts.resubAlert(event);
+    broadcaster.broadcast({ kind: "alertEvent", data: alert });
+    stats.setLatestSubscription(alert);
+    pushStats();
   });
 
-  eventSubscriptionClient.on("subscriptionGift", (event) => {
-    const alert = transformSubscriptionGiftEvent(event);
-    webSocketBroadcaster.broadcast({ kind: "alertEvent", data: alert });
-    statsStore.setLatestGift(alert);
-    broadcastStatsSnapshot();
+  listener.onChannelSubscriptionGift(userId, (event) => {
+    const alert = alerts.giftAlert(event);
+    broadcaster.broadcast({ kind: "alertEvent", data: alert });
+    stats.setLatestGift(alert);
+    pushStats();
+    // Thank the gifter out loud via voisona-bot's TTS pipe.
+    speak(
+      config,
+      event.gifterDisplayName
+        ? `Thank you ${event.gifterDisplayName} for gifting ${event.amount} subs!`
+        : `Thanks for the ${event.amount} gifted subs!`,
+    );
   });
 
-  eventSubscriptionClient.on("follow", (event) => {
-    const alert = transformFollowEvent(event);
-    webSocketBroadcaster.broadcast({ kind: "alertEvent", data: alert });
-    statsStore.setLatestFollow(alert);
-    broadcastStatsSnapshot();
+  listener.onChannelFollow(userId, userId, (event) => {
+    const alert = alerts.followAlert(event);
+    broadcaster.broadcast({ kind: "alertEvent", data: alert });
+    stats.setLatestFollow(alert);
+    pushStats();
   });
 
-  eventSubscriptionClient.on("cheer", (event) => {
-    const alert = transformCheerEvent(event);
-    webSocketBroadcaster.broadcast({ kind: "alertEvent", data: alert });
-    statsStore.setLatestCheer(alert);
-    broadcastStatsSnapshot();
+  listener.onChannelCheer(userId, (event) => {
+    const alert = alerts.cheerAlert(event);
+    broadcaster.broadcast({ kind: "alertEvent", data: alert });
+    stats.setLatestCheer(alert);
+    pushStats();
   });
 
-  eventSubscriptionClient.on("raid", async (event) => {
-    webSocketBroadcaster.broadcast({
-      kind: "alertEvent",
-      data: transformRaidEvent(event),
-    });
-
-    await helixClient.sendChatMessage(broadcasterUserId, botUserId, `!shoutout @${event.from_broadcaster_user_name}`);
+  // voisona-bot already shouts out raiders; here we just play the overlay alert.
+  listener.onChannelRaidTo(userId, (event) => {
+    broadcaster.broadcast({ kind: "alertEvent", data: alerts.raidAlert(event) });
   });
 
-  eventSubscriptionClient.on("goalBegin", (event) => {
-    statsStore.upsertGoal(transformGoalEvent(event));
-    broadcastStatsSnapshot();
+  listener.onChannelGoalBegin(userId, (event) => {
+    stats.upsertGoal(alerts.goal(event));
+    pushStats();
+  });
+  listener.onChannelGoalProgress(userId, (event) => {
+    stats.upsertGoal(alerts.goal(event));
+    pushStats();
+  });
+  listener.onChannelGoalEnd(userId, (event) => {
+    stats.removeGoal(event.id);
+    pushStats();
   });
 
-  eventSubscriptionClient.on("goalProgress", (event) => {
-    statsStore.upsertGoal(transformGoalEvent(event));
-    broadcastStatsSnapshot();
+  listener.onSubscriptionCreateFailure((subscription, error) => {
+    // One missing scope (e.g. channel:read:goals) shouldn't take the overlay
+    // down — Twurple keeps the other subscriptions alive.
+    console.warn(`[eventsub] subscription failed: ${subscription.id}: ${errorMessage(error)}`);
   });
 
-  eventSubscriptionClient.on("goalEnd", (event) => {
-    // Goals stay on screen briefly after ending so viewers see the
-    // completion frame, then disappear on the next snapshot push. The
-    // simplest implementation is "remove immediately" — Twitch fires
-    // goal.end only once, so the goal is gone on the next refresh.
-    statsStore.removeGoal(event.id);
-    broadcastStatsSnapshot();
-  });
+  listener.start();
 
-  eventSubscriptionClient.on("fatalError", (error) => {
-    console.error("[eventsub] fatal error:", error.message);
-    process.exitCode = 1;
-  });
-
-  eventSubscriptionClient.start();
-
-  const httpServer = serve({
-    fetch: application.fetch,
-    port: configuration.serverPort,
-  });
+  const httpServer = serve({ fetch: application.fetch, port: config.serverPort });
   injectWebSocket(httpServer);
+  console.log(`[boot] HTTP + WebSocket server on http://localhost:${config.serverPort}`);
 
-  console.log(
-    `[boot] HTTP + WebSocket server listening on http://localhost:${configuration.serverPort}`,
-  );
-
-  function gracefulShutdown(): void {
+  const shutdown = (): void => {
     console.log("[shutdown] stopping...");
-    authentication.stopProactiveRefresh();
-    eventSubscriptionClient.stop();
+    listener.stop();
     httpServer.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 2_000).unref();
-  }
-
-  process.on("SIGINT", gracefulShutdown);
-  process.on("SIGTERM", gracefulShutdown);
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((error: unknown) => {

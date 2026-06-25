@@ -30,3 +30,5 @@ packs/
 *.mp3
 *.wav
 *.ogg
+.idea/
+.playwright-mcp

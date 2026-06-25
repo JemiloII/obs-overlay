@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { ServerToClientMessage } from "@twitch-overlay/types";
-import type { StatsStore } from "../stats/statsStore.js";
-import type { WebSocketBroadcaster } from "./webSocketBroadcaster.js";
+import type { StatsStore } from "../stats/statsStore.ts";
+import type { WebSocketBroadcaster } from "./webSocketBroadcaster.ts";
 
 export type ApplicationDependencies = {
   webSocketBroadcaster: WebSocketBroadcaster;

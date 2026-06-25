@@ -1,46 +1,27 @@
 import { resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
 
-const repositoryRoot = resolve(import.meta.dirname, "..", "..");
-const environmentFilePath = resolve(repositoryRoot, ".env");
+loadDotenv({ path: resolve(import.meta.dirname, "..", "..", ".env") });
 
-loadDotenv({ path: environmentFilePath });
-
-type RequiredEnvironmentKey =
-  | "TWITCH_CLIENT_ID"
-  | "TWITCH_SECRET_ID"
-  | "TWITCH_ACCESS_TOKEN"
-  | "TWITCH_REFRESH_TOKEN";
-
-function readRequiredEnvironmentValue(key: RequiredEnvironmentKey): string {
-  const value = process.env[key];
-  if (!value || value.trim().length === 0) {
-    throw new Error(
-      `Missing required environment variable "${key}". Add it to ${environmentFilePath}.`,
-    );
+function required(key: string): string {
+  const value = process.env[key]?.trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable "${key}".`);
   }
-  return value.trim();
+  return value;
 }
 
-export type ApplicationConfiguration = {
-  twitchClientId: string;
-  twitchClientSecret: string;
-  twitchAccessToken: string;
-  twitchRefreshToken: string;
-  serverPort: number;
-};
+export type ApplicationConfiguration = ReturnType<typeof loadConfiguration>;
 
-export function loadConfiguration(): ApplicationConfiguration {
-  const portValue = process.env.SERVER_PORT?.trim();
-  const parsedPort = portValue ? Number.parseInt(portValue, 10) : 8787;
-  if (!Number.isFinite(parsedPort) || parsedPort <= 0) {
-    throw new Error(`Invalid SERVER_PORT "${portValue}".`);
-  }
+export function loadConfiguration() {
   return {
-    twitchClientId: readRequiredEnvironmentValue("TWITCH_CLIENT_ID"),
-    twitchClientSecret: readRequiredEnvironmentValue("TWITCH_SECRET_ID"),
-    twitchAccessToken: readRequiredEnvironmentValue("TWITCH_ACCESS_TOKEN"),
-    twitchRefreshToken: readRequiredEnvironmentValue("TWITCH_REFRESH_TOKEN"),
-    serverPort: parsedPort,
+    twitchClientId: required("TWITCH_CLIENT_ID"),
+    twitchClientSecret: required("TWITCH_SECRET_ID"),
+    twitchAccessToken: required("TWITCH_ACCESS_TOKEN"),
+    twitchRefreshToken: required("TWITCH_REFRESH_TOKEN"),
+    serverPort: Number(process.env.SERVER_PORT) || 8787,
+    // Optional app-to-app TTS pipe (voisona-bot /speak). Both must be set to enable.
+    voisonaSpeakUrl: process.env.VOISONA_SPEAK_URL?.trim() || null,
+    voisonaApiKey: process.env.VOISONA_API_KEY?.trim() || null,
   };
 }

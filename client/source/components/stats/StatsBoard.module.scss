@@ -1,0 +1,56 @@
+@use "../../styles/variables" as variables;
+
+.statsBoard {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingMedium;
+  // Asymmetric padding: the right + bottom sides need extra room so the
+  // card box-shadows aren't clipped by the scroll-container edge. The
+  // shadow extends ~24px out so 2rem of breathing room covers it.
+  padding: variables.$spacingMedium 2rem 2rem variables.$spacingMedium;
+  pointer-events: none;
+  overflow-y: auto;
+  color: variables.$messageTextColor;
+  font-family: variables.$fontFamilyBody;
+  // Sidebar-sized so cards stay readable in OBS (recommended 420px wide)
+  // and never stretch when viewed in a wider browser window.
+  max-width: 28rem;
+}
+
+.statsBoardEmpty {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: variables.$messageTextColor;
+  opacity: 0.45;
+  font-family: variables.$fontFamilyBody;
+  font-size: 1rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingSmall;
+  pointer-events: auto;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: variables.$messageTextColor;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  padding-left: variables.$spacingExtraSmall;
+}
+
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacingSmall;
+}
